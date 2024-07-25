@@ -104,11 +104,21 @@ const copyBillingDetailsToCustomer = async (
     const { name, phone, address } = payment_method.billing_details;
     if (!name || !phone || !address) return;
 
-    await stripe.customers.update(customer, { name, phone, address });
+    const sanitizedAddress = {
+        ...address,
+        city: address.city ?? undefined,
+        country: address.country ?? undefined,
+        line1: address.line1 ?? undefined,
+        line2: address.line2 ?? undefined,
+        postal_code: address.postal_code ?? undefined,
+        state: address.state ?? undefined
+    };
+
+    await stripe.customers.update(customer, { name, phone, address: sanitizedAddress });
     const { error } = await supabaseAdmin
         .from('users')
         .update({
-            billing_address: { ...address },
+            billing_address: { ...sanitizedAddress },
             payment_method: { ...payment_method[payment_method.type] }
         })
         .eq('id', uuid);
